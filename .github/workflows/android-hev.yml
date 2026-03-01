@@ -1,0 +1,58 @@
+name: Build HEV Android ARM64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential unzip cmake ninja-build
+
+      - name: Download Android NDK r26d
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip android-ndk-r26d-linux.zip
+          echo "NDK=$GITHUB_WORKSPACE/android-ndk-r26d" >> $GITHUB_ENV
+
+      - name: Clone hev-socks5-tunnel
+        run: |
+          git clone --recursive https://github.com/heiher/hev-socks5-tunnel.git
+          cd hev-socks5-tunnel
+
+      - name: Setup Android toolchain
+        run: |
+          echo "TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
+          echo "TARGET=aarch64-linux-android" >> $GITHUB_ENV
+          echo "API=21" >> $GITHUB_ENV
+
+      - name: Build HEV as shared library
+        run: |
+          cd hev-socks5-tunnel
+          export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export STRIP=$TOOLCHAIN/bin/llvm-strip
+          make clean
+          make CC=$CC AR=$AR STRIP=$STRIP
+
+      - name: Build shared .so manually
+        run: |
+          cd hev-socks5-tunnel
+          export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang
+          $CC -fPIC -shared \
+              $(find src -name "*.c") \
+              $(find third-part -name "*.c") \
+              -I src \
+              -I third-part/lwip/src/include \
+              -I third-part \
+              -o libhev-socks5-tunnel.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libhev-arm64
+          path: hev-socks5-tunnel/libhev-socks5-tunnel.so
