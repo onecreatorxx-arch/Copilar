@@ -38,6 +38,8 @@ jobs:
           -DBUILD_SERVER=OFF \
           -DBUILD_CLIENT=OFF \
           -DBUILD_NOTHING_BY_DEFAULT=ON \
+          -DBADVPN_USE_EPOLL=ON \
+          -DBADVPN_USE_SIGNALFD=ON \
           -DCMAKE_BUILD_TYPE=Release
 
     - name: Build tun2socks
@@ -45,13 +47,16 @@ jobs:
         cd badvpn/build-android
         make -j$(nproc)
 
-    - name: Create shared library manually
+    - name: Create shared library
       run: |
         cd badvpn/build-android
 
         $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang \
           -shared -fPIC \
           tun2socks/CMakeFiles/tun2socks.dir/*.o \
+          base/CMakeFiles/base.dir/*.o \
+          flow/CMakeFiles/flow.dir/*.o \
+          system/CMakeFiles/system.dir/*.o \
           -o libtun2socks.so
 
     - name: Upload artifact
