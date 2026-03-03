@@ -1,20 +1,35 @@
-name: Build Android APK
+name: Debug Android Build Structure
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Show current directory
+        run: pwd
+
+      - name: List root files
+        run: ls -la
+
+      - name: Recursive full tree
+        run: |
+          sudo apt update
+          sudo apt install -y tree
+          tree -a -I ".git"
+
+      - name: Find gradlew location
+        run: find . -name "gradlew"
+
+      - name: Show directory depth 3
+        run: find . -maxdepth 3 -type d
+
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -29,14 +44,19 @@ jobs:
       - name: Install NDK
         run: sdkmanager "ndk;25.2.9519653"
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
+      - name: Try chmod (will fail if not root)
+        run: |
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            echo "gradlew found in root"
+          else
+            echo "gradlew NOT in root"
+          fi
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: sockstun-debug
-          path: app/build/outputs/apk/debug/*.apk
+      - name: Attempt build (debug test)
+        run: |
+          if [ -f gradlew ]; then
+            ./gradlew tasks
+          else
+            echo "Skipping build because gradlew not found in root"
+          fi
