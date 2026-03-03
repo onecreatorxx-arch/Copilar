@@ -1,29 +1,31 @@
-name: Build APK Corrected
+name: Build SocksTun APK
 on: [push, workflow_dispatch]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout con Submodulos
         uses: actions/checkout@v4
         with:
-          submodules: recursive # Esto descarga el "traductor" de red
+          submodules: 'recursive' # ESTO ES LO QUE BAJA EL TRADUCTOR
           fetch-depth: 0
 
-      - name: set up JDK 17
+      - name: Configurar Java 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew # Esto le da permiso para "cocinar" la app
+      - name: Permisos para Gradle
+        run: chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: Compilar APK (Debug)
         run: ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Subir APK Resultante
         uses: actions/upload-artifact@v4
         with:
-          name: SocksTun-Debug
+          name: MiAppTunel-Base
           path: app/build/outputs/apk/debug/*.apk
